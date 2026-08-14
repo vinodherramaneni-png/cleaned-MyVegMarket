@@ -49,18 +49,18 @@ function CustomTabBar() {
       onPress: () => router.push("/(tabs)/containers" as Href),
     },
     {
-      key: "prices",
-      label: "Prices",
-      icon: "bar-chart-outline",
-      iconFilled: "bar-chart",
-      onPress: () => router.push("/(tabs)/prices" as Href),
-    },
-    {
       key: "post",
       label: "Post Ad",
       icon: "add" as Glyph,
       iconFilled: "add" as Glyph,
       onPress: session.goPostAd,
+    },
+    {
+      key: "prices",
+      label: "Prices",
+      icon: "bar-chart-outline",
+      iconFilled: "bar-chart",
+      onPress: () => router.push("/(tabs)/prices" as Href),
     },
     {
       key: "account",
@@ -145,7 +145,11 @@ export default function TabLayout() {
         options={{
           title: "Home",
           tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons name={focused ? "home" : "home-outline"} size={size} color={color} />
+            <Ionicons
+              name={focused ? "home" : "home-outline"}
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
@@ -154,7 +158,11 @@ export default function TabLayout() {
         options={{
           title: "View Ads",
           tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons name={focused ? "storefront" : "storefront-outline"} size={size} color={color} />
+            <Ionicons
+              name={focused ? "storefront" : "storefront-outline"}
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
@@ -163,7 +171,11 @@ export default function TabLayout() {
         options={{
           title: "Prices",
           tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons name={focused ? "bar-chart" : "bar-chart-outline"} size={size} color={color} />
+            <Ionicons
+              name={focused ? "bar-chart" : "bar-chart-outline"}
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
@@ -172,7 +184,11 @@ export default function TabLayout() {
         options={{
           title: "Post Ad",
           tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons name={focused ? "add-circle" : "add-circle-outline"} size={size} color={color} />
+            <Ionicons
+              name={focused ? "add-circle" : "add-circle-outline"}
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
@@ -181,7 +197,11 @@ export default function TabLayout() {
         options={{
           title: "Account",
           tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons name={focused ? "person-circle" : "person-circle-outline"} size={size} color={color} />
+            <Ionicons
+              name={focused ? "person-circle" : "person-circle-outline"}
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
@@ -217,9 +237,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 999,
-  },
-  iconWrapActive: {
-    backgroundColor: "rgba(15, 157, 58, 0.12)",
   },
   postWrap: {
     flex: 1,
