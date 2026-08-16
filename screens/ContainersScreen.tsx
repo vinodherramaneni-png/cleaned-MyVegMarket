@@ -1,8 +1,8 @@
-import { supabase } from "@/lib/supabase";
-import { useAppSession } from "@/lib/appSession";
-import ProduceImage from "@/components/ProduceImage";
 import EmptyState from "@/components/EmptyState";
+import ProduceImage from "@/components/ProduceImage";
 import VegLoader from "@/components/VegLoader";
+import { useAppSession } from "@/lib/appSession";
+import { safeBack } from "@/lib/nav";
 import {
   GREEN,
   HD_IMAGES,
@@ -14,16 +14,13 @@ import {
   isNewListing,
   isUpcoming,
   matchCategory,
-  produceImage,
-  categoryAccent,
 } from "@/lib/produceUi";
+import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter, type Href } from "expo-router";
-import { safeBack } from "@/lib/nav";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   FlatList,
-  Image,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -166,7 +163,7 @@ export default function ContainersScreen() {
     const { data, error: queryError } = await supabase
       .from("containers")
       .select(
-        "id,title,packaging,qty,quantity_unit,price,currency,route_from,route_to,availability_date,image_url,company_name,market_location,container_type,category,created_at,is_active"
+        "id,title,packaging,qty,quantity_unit,price,currency,route_from,route_to,availability_date,image_url,company_name,market_location,container_type,category,created_at,is_active",
       )
       .eq("is_active", true)
       .order("created_at", { ascending: false });
@@ -186,37 +183,50 @@ export default function ContainersScreen() {
   useFocusEffect(
     useCallback(() => {
       loadContainers();
-    }, [loadContainers])
+    }, [loadContainers]),
   );
 
   const liveItems = useMemo(
     () =>
       items.filter(
-        (item) => matchCategory(item.category || item.title, chip) && !isUpcoming(item.availability_date)
+        (item) =>
+          matchCategory(item.category || item.title, chip) &&
+          !isUpcoming(item.availability_date),
       ),
-    [items, chip]
+    [items, chip],
   );
 
   const upcomingItems = useMemo(
     () =>
       items.filter(
-        (item) => matchCategory(item.category || item.title, chip) && isUpcoming(item.availability_date)
+        (item) =>
+          matchCategory(item.category || item.title, chip) &&
+          isUpcoming(item.availability_date),
       ),
-    [items, chip]
+    [items, chip],
   );
 
   useFocusEffect(
     useCallback(() => {
       if (!session.isLoggedIn) return;
       liveItems.forEach((item) => {
-        if (session.isPreBooked(item.id) && !isUpcoming(item.availability_date) && !session.notifiedIds.includes(item.id)) {
+        if (
+          session.isPreBooked(item.id) &&
+          !isUpcoming(item.availability_date) &&
+          !session.notifiedIds.includes(item.id)
+        ) {
           session.markNotified(item.id);
-          void import("@/lib/pushNotifications").then(({ notifyShipmentNowLive }) => {
-            void notifyShipmentNowLive(item.id, item.title || "A pre-booked shipment");
-          });
+          void import("@/lib/pushNotifications").then(
+            ({ notifyShipmentNowLive }) => {
+              void notifyShipmentNowLive(
+                item.id,
+                item.title || "A pre-booked shipment",
+              );
+            },
+          );
         }
       });
-    }, [liveItems, session])
+    }, [liveItems, session]),
   );
 
   function wishPayload(item: ContainerItem) {
@@ -246,7 +256,11 @@ export default function ContainersScreen() {
         style={styles.heartBtn}
         onPress={() => session.toggleWishlist(wishPayload(item))}
       >
-        <Ionicons name={wishlisted ? "heart" : "heart-outline"} size={16} color={wishlisted ? "#E11D48" : GREEN} />
+        <Ionicons
+          name={wishlisted ? "heart" : "heart-outline"}
+          size={18}
+          color={wishlisted ? "#E11D48" : "#111111"}
+        />
       </Pressable>
     );
   }
@@ -257,7 +271,14 @@ export default function ContainersScreen() {
     const arrived = formatArrived(item.availability_date);
 
     return (
-      <Pressable style={styles.card} onPress={() => session.openAdInsights(JSON.stringify(item))}>
+      <Pressable
+        style={styles.card}
+        onPress={() => session.openAdInsights(JSON.stringify(item))}
+      >
+        {session.isLoggedIn ? (
+          <View style={styles.cardHeart}>{renderHeart(item)}</View>
+        ) : null}
+
         <View style={styles.imageWrap}>
           <ProduceImage
             title={item.title}
@@ -265,7 +286,7 @@ export default function ContainersScreen() {
             imageUrl={item.image_url}
             style={styles.image}
           />
-          {session.isLoggedIn ? <View style={styles.imageHeart}>{renderHeart(item)}</View> : null}
+
           {badge ? (
             <View style={styles.imageBadge}>
               <Text style={styles.imageBadgeText}>{badge}</Text>
@@ -279,10 +300,16 @@ export default function ContainersScreen() {
           <Text style={styles.meta}>
             {countryFlag(origin)} {origin}
           </Text>
-          <Text style={styles.meta}>{containerLabel(item.container_type, item.qty)}</Text>
-          <Text style={styles.meta}>Available: {item.market_location || item.route_to || "Dubai"}</Text>
+          <Text style={styles.meta}>
+            {containerLabel(item.container_type, item.qty)}
+          </Text>
+          <Text style={styles.meta}>
+            Available: {item.market_location || item.route_to || "Dubai"}
+          </Text>
           <View style={styles.bottomRow}>
-            <Text style={styles.price}>{formatPrice(item.currency, item.price)} / Container</Text>
+            <Text style={styles.price}>
+              {formatPrice(item.currency, item.price)} / Container
+            </Text>
             {arrived ? (
               <View style={styles.arrivedPill}>
                 <Text style={styles.arrivedText}>Arrived: {arrived}</Text>
@@ -299,12 +326,18 @@ export default function ContainersScreen() {
     const booked = session.isLoggedIn && session.isPreBooked(item.id);
 
     return (
-      <Pressable style={styles.card} onPress={() => session.openAdInsights(JSON.stringify(item))}>
+      <Pressable
+        style={styles.card}
+        onPress={() => session.openAdInsights(JSON.stringify(item))}
+      >
+        {session.isLoggedIn ? (
+          <View style={styles.cardHeart}>{renderHeart(item)}</View>
+        ) : null}
+
         <View style={styles.upcomingCorner}>
           <View style={styles.soonBadge}>
             <Text style={styles.soonText}>Arriving Soon</Text>
           </View>
-          {session.isLoggedIn ? renderHeart(item) : null}
         </View>
         <View style={styles.imageWrap}>
           <ProduceImage
@@ -321,9 +354,15 @@ export default function ContainersScreen() {
           <Text style={styles.meta}>
             {countryFlag(origin)} {origin}
           </Text>
-          <Text style={styles.meta}>{containerLabel(item.container_type, item.qty)}</Text>
-          <Text style={styles.meta}>Available: {item.market_location || item.route_to || "Dubai"}</Text>
-          <Text style={styles.price}>{formatPrice(item.currency, item.price)} / Container</Text>
+          <Text style={styles.meta}>
+            {containerLabel(item.container_type, item.qty)}
+          </Text>
+          <Text style={styles.meta}>
+            Available: {item.market_location || item.route_to || "Dubai"}
+          </Text>
+          <Text style={styles.price}>
+            {formatPrice(item.currency, item.price)} / Container
+          </Text>
           <Pressable
             style={[styles.prebookBtn, booked && styles.prebookBtnOn]}
             onPress={() => {
@@ -335,7 +374,7 @@ export default function ContainersScreen() {
               session.togglePreBook(
                 item.id,
                 item.title || "This shipment",
-                item.availability_date
+                item.availability_date,
               );
             }}
           >
@@ -351,16 +390,28 @@ export default function ContainersScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <View style={styles.header}>
-        <Pressable onPress={() => safeBack(router, "/(tabs)")} style={styles.iconBtn} hitSlop={8}>
+        <Pressable
+          onPress={() => safeBack(router, "/(tabs)")}
+          style={styles.iconBtn}
+          hitSlop={8}
+        >
           <Ionicons name="chevron-back" size={24} color="#111827" />
         </Pressable>
         <Text style={styles.headerTitle}>View Ads</Text>
         <View style={styles.headerRight}>
-          <Pressable onPress={() => router.push("/search" as Href)} style={styles.iconBtn} hitSlop={8}>
+          <Pressable
+            onPress={() => router.push("/search" as Href)}
+            style={styles.iconBtn}
+            hitSlop={8}
+          >
             <Ionicons name="search" size={20} color="#111827" />
           </Pressable>
           {session.isLoggedIn ? (
-            <Pressable onPress={() => session.setWishlistOpen(true)} style={styles.iconBtn} hitSlop={8}>
+            <Pressable
+              onPress={() => session.setWishlistOpen(true)}
+              style={styles.iconBtn}
+              hitSlop={8}
+            >
               <Ionicons name="heart-outline" size={20} color={GREEN} />
             </Pressable>
           ) : null}
@@ -376,8 +427,14 @@ export default function ContainersScreen() {
           {CHIPS.map((name) => {
             const on = chip === name;
             return (
-              <Pressable key={name} style={[styles.chip, on && styles.chipOn]} onPress={() => setChip(name)}>
-                <Text style={[styles.chipText, on && styles.chipTextOn]}>{name}</Text>
+              <Pressable
+                key={name}
+                style={[styles.chip, on && styles.chipOn]}
+                onPress={() => setChip(name)}
+              >
+                <Text style={[styles.chipText, on && styles.chipTextOn]}>
+                  {name}
+                </Text>
               </Pressable>
             );
           })}
@@ -403,7 +460,10 @@ export default function ContainersScreen() {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={() => loadContainers(true)} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => loadContainers(true)}
+            />
           }
           ListEmptyComponent={
             <EmptyState
@@ -437,9 +497,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingBottom: 6,
   },
-  iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerTitle: { flex: 1, textAlign: "center", fontSize: 18, fontWeight: "800", color: "#111827" },
-  headerRight: { flexDirection: "row", minWidth: 80, justifyContent: "flex-end" },
+  iconBtn: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#111827",
+  },
+  headerRight: {
+    flexDirection: "row",
+    minWidth: 80,
+    justifyContent: "flex-end",
+  },
   chipsWrap: { flexGrow: 0 },
   chips: { paddingHorizontal: 16, paddingBottom: 12, gap: 8 },
   chip: {
@@ -473,11 +548,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#E8EEE9",
   },
   image: { width: 108, height: 108, borderRadius: 14 },
-  imageHeart: {
+  cardHeart: {
     position: "absolute",
-    top: 6,
-    right: 6,
-    zIndex: 3,
+    top: 10,
+    right: 10,
+    zIndex: 10,
   },
   heartBtn: {
     width: 28,
@@ -497,12 +572,29 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   imageBadgeText: { color: "#FFFFFF", fontSize: 10, fontWeight: "800" },
-  body: { flex: 1, minWidth: 0, justifyContent: "center" },
+  body: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: "center",
+    paddingRight: 34,
+  },
   upcomingBody: { paddingTop: 28, paddingRight: 4 },
   product: { fontSize: 15, fontWeight: "800", color: "#111827" },
   meta: { marginTop: 4, fontSize: 12, color: "#6B7280", fontWeight: "600" },
-  bottomRow: { marginTop: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
-  price: { marginTop: 8, fontSize: 14, fontWeight: "800", color: "#111827", flex: 1 },
+  bottomRow: {
+    marginTop: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  price: {
+    marginTop: 8,
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#111827",
+    flex: 1,
+  },
   arrivedPill: {
     backgroundColor: "#E8F5EC",
     borderRadius: 999,
@@ -511,14 +603,16 @@ const styles = StyleSheet.create({
   },
   arrivedText: { color: GREEN, fontSize: 11, fontWeight: "800" },
   upcomingWrap: { marginTop: 8 },
-  sectionTitle: { fontSize: 18, fontWeight: "800", color: "#111827", marginBottom: 12 },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#111827",
+    marginBottom: 12,
+  },
   upcomingCorner: {
     position: "absolute",
     top: 10,
-    right: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
+    right: 48,
     zIndex: 4,
   },
   soonBadge: {
@@ -538,7 +632,12 @@ const styles = StyleSheet.create({
   prebookBtnOn: { backgroundColor: "#E8F5EC" },
   prebookText: { color: "#FFFFFF", fontWeight: "800" },
   prebookTextOn: { color: GREEN },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
   loadingText: { marginTop: 8, color: "#6B7280", fontWeight: "600" },
   emptyTitle: { fontSize: 18, fontWeight: "800", color: "#111827" },
   emptyText: { marginTop: 8, color: "#6B7280", textAlign: "center" },

@@ -1,33 +1,26 @@
-import { supabase } from "@/lib/supabase";
-import { useAppSession } from "@/lib/appSession";
-import GlobalSearchBar from "@/components/GlobalSearchBar";
 import AnimatedPressable from "@/components/AnimatedPressable";
+import GlobalSearchBar from "@/components/GlobalSearchBar";
 import ProduceImage from "@/components/ProduceImage";
+import { BRAND } from "@/constants/colors";
+import { useAppSession } from "@/lib/appSession";
 import {
   GREEN,
   HD_IMAGES,
   PAGE_BG,
-  formatPrice,
-  formatKgRange,
-  produceImage,
-  countryFlag,
-  isNewListing,
   containerLabel,
+  countryFlag,
+  formatKgRange,
+  formatPrice,
+  isNewListing,
 } from "@/lib/produceUi";
-import { BRAND } from "@/constants/colors";
+import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter, type Href } from "expo-router";
-import React, {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
   FlatList,
-  Image,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -132,8 +125,17 @@ function HeroBannerCarousel({
     else onContainers();
   };
 
-  const renderBanner = ({ item: banner }: { item: (typeof HERO_BANNERS)[0] }) => (
-    <View style={[heroStyles.card, { backgroundColor: banner.gradient[0], width: bannerWidth }]}>
+  const renderBanner = ({
+    item: banner,
+  }: {
+    item: (typeof HERO_BANNERS)[0];
+  }) => (
+    <View
+      style={[
+        heroStyles.card,
+        { backgroundColor: banner.gradient[0], width: bannerWidth },
+      ]}
+    >
       <View style={heroStyles.cardCopy}>
         <View style={heroStyles.livePill}>
           <View style={heroStyles.liveDot} />
@@ -304,10 +306,10 @@ const heroStyles = StyleSheet.create({
 
 // ─── Category Row ─────────────────────────────────────────────────────────────
 const CATEGORIES = [
-  { key: "Fruits",     icon: "nutrition-outline" as const,  image: HD_IMAGES.fruits,     color: "#EA580C" },
-  { key: "Vegetables", icon: "leaf-outline" as const,        image: HD_IMAGES.vegetables, color: "#059669" },
-  { key: "Spices",     icon: "flame-outline" as const,       image: HD_IMAGES.spices,     color: "#DC2626" },
-  { key: "More",       icon: "grid-outline" as const,        image: null,                  color: BRAND.primary },
+  { key: "Fruits", image: HD_IMAGES.fruits, color: "#EA580C" },
+  { key: "Vegetables", image: HD_IMAGES.vegetables, color: "#059669" },
+  { key: "Spices", image: HD_IMAGES.spices, color: "#DC2626" },
+  { key: "More", image: null, color: BRAND.primary },
 ];
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -324,13 +326,23 @@ export default function HomePage() {
   // Animated search placeholder loop
   useEffect(() => {
     timerRef.current = setInterval(() => {
-      Animated.timing(searchFade, { toValue: 0, duration: 220, useNativeDriver: true }).start(() => {
+      Animated.timing(searchFade, {
+        toValue: 0,
+        duration: 220,
+        useNativeDriver: true,
+      }).start(() => {
         globalSearchIndex = (globalSearchIndex + 1) % SEARCH_TEXTS.length;
         setSearchText(SEARCH_TEXTS[globalSearchIndex]);
-        Animated.timing(searchFade, { toValue: 1, duration: 220, useNativeDriver: true }).start();
+        Animated.timing(searchFade, {
+          toValue: 1,
+          duration: 220,
+          useNativeDriver: true,
+        }).start();
       });
     }, 2800);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
   }, [searchFade]);
 
   const load = useCallback(async (isRefresh = false) => {
@@ -338,7 +350,9 @@ export default function HomePage() {
     try {
       const { data: products } = await supabase
         .from("products")
-        .select("id,name,image_url,market_price_aed,myveg_price_aed,updated_at,active")
+        .select(
+          "id,name,image_url,market_price_aed,myveg_price_aed,updated_at,active",
+        )
         .eq("active", true)
         .order("updated_at", { ascending: false })
         .limit(6);
@@ -352,12 +366,19 @@ export default function HomePage() {
         .gte("created_at", start.toISOString())
         .order("created_at", { ascending: true });
 
-      const grouped = new Map<string, { min: number; max: number; at: string | null }>();
+      const grouped = new Map<
+        string,
+        { min: number; max: number; at: string | null }
+      >();
       (updates || []).forEach((row: any) => {
         if (!row.published_product_id || row.price == null) return;
         const cur = grouped.get(row.published_product_id);
         if (!cur) {
-          grouped.set(row.published_product_id, { min: row.price, max: row.price, at: row.created_at });
+          grouped.set(row.published_product_id, {
+            min: row.price,
+            max: row.price,
+            at: row.created_at,
+          });
         } else {
           grouped.set(row.published_product_id, {
             min: Math.min(cur.min, row.price),
@@ -373,7 +394,8 @@ export default function HomePage() {
           const min = stats?.min ?? p.myveg_price_aed ?? p.market_price_aed;
           const max = stats?.max ?? p.market_price_aed ?? p.myveg_price_aed;
           let changePct = 0;
-          if (min && max && min > 0) changePct = Math.round(((max - min) / min) * 100);
+          if (min && max && min > 0)
+            changePct = Math.round(((max - min) / min) * 100);
           return {
             id: p.id,
             name: p.name,
@@ -383,13 +405,13 @@ export default function HomePage() {
             latest_updated_at: stats?.at ?? p.updated_at,
             changePct,
           };
-        })
+        }),
       );
 
       const { data: adsData } = await supabase
         .from("containers")
         .select(
-          "id,title,route_from,market_location,route_to,price,currency,container_type,qty,image_url,category,created_at"
+          "id,title,route_from,market_location,route_to,price,currency,container_type,qty,image_url,category,created_at",
         )
         .eq("is_active", true)
         .order("created_at", { ascending: false })
@@ -407,7 +429,7 @@ export default function HomePage() {
     useCallback(() => {
       load();
       session.refreshSession();
-    }, [load, session.refreshSession])
+    }, [load, session.refreshSession]),
   );
 
   function stopSearchLoop() {
@@ -429,7 +451,13 @@ export default function HomePage() {
       <ScrollView
         contentContainerStyle={st.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={GREEN} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => load(true)}
+            tintColor={GREEN}
+          />
+        }
       >
         {/* ── Header ── */}
         <View style={st.header}>
@@ -441,17 +469,31 @@ export default function HomePage() {
           </View>
           <View style={st.headerRight}>
             {session.isLoggedIn ? (
-              <AnimatedPressable style={st.iconBtn} onPress={() => session.setWishlistOpen(true)} haptic>
+              <AnimatedPressable
+                style={st.iconBtn}
+                onPress={() => session.setWishlistOpen(true)}
+                haptic
+              >
                 <Ionicons name="heart-outline" size={22} color={GREEN} />
                 {session.wishlist.length > 0 ? (
                   <View style={st.heartBadge}>
-                    <Text style={st.heartBadgeText}>{session.wishlist.length}</Text>
+                    <Text style={st.heartBadgeText}>
+                      {session.wishlist.length}
+                    </Text>
                   </View>
                 ) : null}
               </AnimatedPressable>
             ) : null}
-            <AnimatedPressable style={st.iconBtn} onPress={() => router.push("/inquiry-box" as Href)} haptic>
-              <Ionicons name="notifications-outline" size={22} color={BRAND.text} />
+            <AnimatedPressable
+              style={st.iconBtn}
+              onPress={() => router.push("/inquiry-box" as Href)}
+              haptic
+            >
+              <Ionicons
+                name="notifications-outline"
+                size={22}
+                color={BRAND.text}
+              />
               <View style={st.notifDot} />
             </AnimatedPressable>
           </View>
@@ -471,38 +513,42 @@ export default function HomePage() {
 
         {/* ── Categories ── */}
         <View style={st.sectionHead}>
-          <Text style={st.sectionTitle}>Shop by Category</Text>
+          <Text style={st.sectionTitle}>View by Category</Text>
           <Pressable onPress={() => router.push("/categories" as Href)}>
-            <Text style={st.viewAll}>See all →</Text>
+            <Text style={st.viewAll}>View all →</Text>
           </Pressable>
         </View>
-        <View style={st.catRow}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={st.catRow}
+        >
           {CATEGORIES.map((cat) => (
             <AnimatedPressable
               key={cat.key}
               style={st.catCard}
-              onPress={() => {
-                if (cat.key === "More") { router.push("/categories" as Href); return; }
-                router.push(`/search?q=${encodeURIComponent(cat.key)}` as Href);
-              }}
+              onPress={() =>
+                router.push(`/search?q=${encodeURIComponent(cat.key)}` as Href)
+              }
               haptic
             >
-              <View style={[st.catIcon, { backgroundColor: cat.color + "18" }]}>
-                {cat.key === "More" ? (
-                  <Ionicons name={cat.icon} size={24} color={cat.color} />
-                ) : (
-                  <ProduceImage
-                    title={cat.key}
-                    category={cat.key}
-                    imageUrl={cat.image}
-                    style={st.catImage}
-                  />
-                )}
+              <View style={st.catIcon}>
+                <ProduceImage
+                  title={cat.key}
+                  category={cat.key}
+                  imageUrl={cat.image}
+                  style={st.catImage}
+                />
               </View>
-              <Text style={[st.catLabel, { color: cat.color }]}>{cat.key}</Text>
+              <Text
+                style={[st.catLabel, { color: cat.color }]}
+                numberOfLines={1}
+              >
+                {cat.key}
+              </Text>
             </AnimatedPressable>
           ))}
-        </View>
+        </ScrollView>
 
         {/* ── Al Aweer Prices ── */}
         <View style={st.sectionHead}>
@@ -528,13 +574,26 @@ export default function HomePage() {
                 style={st.priceImage}
               />
               <View style={st.priceBody}>
-                <Text style={st.cardTitle} numberOfLines={1}>{item.name}</Text>
-                <Text style={st.priceRange}>{formatKgRange(item.min_price, item.max_price)}</Text>
-                <Text style={st.priceMeta}>Updated: {formatUpdated(item.latest_updated_at)}</Text>
+                <Text style={st.cardTitle} numberOfLines={1}>
+                  {item.name}
+                </Text>
+                <Text style={st.priceRange}>
+                  {formatKgRange(item.min_price, item.max_price)}
+                </Text>
+                <Text style={st.priceMeta}>
+                  Updated: {formatUpdated(item.latest_updated_at)}
+                </Text>
               </View>
               <View style={[st.trendBadge, !up && st.trendBadgeDown]}>
-                <Ionicons name={up ? "trending-up" : "trending-down"} size={12} color="#FFFFFF" />
-                <Text style={st.trendText}>{item.changePct > 0 ? "+" : ""}{item.changePct}%</Text>
+                <Ionicons
+                  name={up ? "trending-up" : "trending-down"}
+                  size={12}
+                  color="#FFFFFF"
+                />
+                <Text style={st.trendText}>
+                  {item.changePct > 0 ? "+" : ""}
+                  {item.changePct}%
+                </Text>
               </View>
             </AnimatedPressable>
           );
@@ -550,8 +609,11 @@ export default function HomePage() {
 
         {(ads.length ? ads : FALLBACK_ADS).slice(0, 4).map((item, index) => {
           const origin = item.route_from || "Peru";
-          const wishlisted = session.isLoggedIn && session.isWishlisted(item.id);
-          const showNew = item.created_at ? isNewListing(item.created_at) : false;
+          const wishlisted =
+            session.isLoggedIn && session.isWishlisted(item.id);
+          const showNew = item.created_at
+            ? isNewListing(item.created_at)
+            : false;
           const showFeatured = index === 0 || (!showNew && index < 2);
           return (
             <AnimatedPressable
@@ -591,7 +653,10 @@ export default function HomePage() {
                         location: item.market_location || item.route_to,
                         priceLabel: formatPrice(item.currency, item.price),
                         imageUrl: item.image_url,
-                        containerLabel: containerLabel(item.container_type, item.qty),
+                        containerLabel: containerLabel(
+                          item.container_type,
+                          item.qty,
+                        ),
                       })
                     }
                     haptic
@@ -605,19 +670,33 @@ export default function HomePage() {
                 ) : null}
               </View>
               <View style={st.adBody}>
-                <Text style={st.cardTitle} numberOfLines={1}>{item.title || "Fresh Produce"}</Text>
+                <Text style={st.cardTitle} numberOfLines={1}>
+                  {item.title || "Fresh Produce"}
+                </Text>
                 <View style={st.metaRow}>
-                  <Text style={st.meta}>{countryFlag(origin)} {origin}</Text>
+                  <Text style={st.meta}>
+                    {countryFlag(origin)} {origin}
+                  </Text>
                 </View>
                 <View style={st.metaRow}>
                   <Ionicons name="cube-outline" size={13} color={BRAND.muted} />
-                  <Text style={st.meta}>{containerLabel(item.container_type, item.qty)}</Text>
+                  <Text style={st.meta}>
+                    {containerLabel(item.container_type, item.qty)}
+                  </Text>
                 </View>
                 <View style={st.metaRow}>
-                  <Ionicons name="location-outline" size={13} color={BRAND.muted} />
-                  <Text style={st.meta}>{item.market_location || item.route_to || "Dubai"}</Text>
+                  <Ionicons
+                    name="location-outline"
+                    size={13}
+                    color={BRAND.muted}
+                  />
+                  <Text style={st.meta}>
+                    {item.market_location || item.route_to || "Dubai"}
+                  </Text>
                 </View>
-                <Text style={st.adPrice}>{formatPrice(item.currency, item.price)} / Container</Text>
+                <Text style={st.adPrice}>
+                  {formatPrice(item.currency, item.price)} / Container
+                </Text>
               </View>
             </AnimatedPressable>
           );
@@ -629,15 +708,78 @@ export default function HomePage() {
 
 // ─── Fallback Data ────────────────────────────────────────────────────────────
 const FALLBACK_PRICES: PriceCard[] = [
-  { id: "tomato", name: "Tomato (Local)", image_url: HD_IMAGES.tomatoes, min_price: 2.5, max_price: 3.2, latest_updated_at: new Date().toISOString(), changePct: 8 },
-  { id: "grapes", name: "Green Grapes", image_url: HD_IMAGES.grapes, min_price: 5.8, max_price: 6.9, latest_updated_at: new Date().toISOString(), changePct: -3 },
-  { id: "apples", name: "Fresh Apples", image_url: HD_IMAGES.apples, min_price: 4.2, max_price: 5.0, latest_updated_at: new Date().toISOString(), changePct: 2 },
+  {
+    id: "tomato",
+    name: "Tomato (Local)",
+    image_url: HD_IMAGES.tomatoes,
+    min_price: 2.5,
+    max_price: 3.2,
+    latest_updated_at: new Date().toISOString(),
+    changePct: 8,
+  },
+  {
+    id: "grapes",
+    name: "Green Grapes",
+    image_url: HD_IMAGES.grapes,
+    min_price: 5.8,
+    max_price: 6.9,
+    latest_updated_at: new Date().toISOString(),
+    changePct: -3,
+  },
+  {
+    id: "apples",
+    name: "Fresh Apples",
+    image_url: HD_IMAGES.apples,
+    min_price: 4.2,
+    max_price: 5.0,
+    latest_updated_at: new Date().toISOString(),
+    changePct: 2,
+  },
 ];
 
 const FALLBACK_ADS: AdCard[] = [
-  { id: "grapes", title: "Fresh Green Grapes", route_from: "Peru", market_location: "Dubai", route_to: "Dubai", price: 12500, currency: "AED", container_type: "40ft Container", qty: 1, image_url: HD_IMAGES.grapes, category: "fruits", created_at: new Date().toISOString() },
-  { id: "oranges", title: "Fresh Oranges", route_from: "South Africa", market_location: "Dubai", route_to: "Dubai", price: 9800, currency: "AED", container_type: "40ft Container", qty: 1, image_url: HD_IMAGES.oranges, category: "fruits", created_at: new Date().toISOString() },
-  { id: "apples", title: "Fresh Red Apples", route_from: "Poland", market_location: "Dubai", route_to: "Dubai", price: 11200, currency: "AED", container_type: "40ft Container", qty: 1, image_url: HD_IMAGES.apples, category: "fruits", created_at: new Date().toISOString() },
+  {
+    id: "grapes",
+    title: "Fresh Green Grapes",
+    route_from: "Peru",
+    market_location: "Dubai",
+    route_to: "Dubai",
+    price: 12500,
+    currency: "AED",
+    container_type: "40ft Container",
+    qty: 1,
+    image_url: HD_IMAGES.grapes,
+    category: "fruits",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "oranges",
+    title: "Fresh Oranges",
+    route_from: "South Africa",
+    market_location: "Dubai",
+    route_to: "Dubai",
+    price: 9800,
+    currency: "AED",
+    container_type: "40ft Container",
+    qty: 1,
+    image_url: HD_IMAGES.oranges,
+    category: "fruits",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "apples",
+    title: "Fresh Red Apples",
+    route_from: "Poland",
+    market_location: "Dubai",
+    route_to: "Dubai",
+    price: 11200,
+    currency: "AED",
+    container_type: "40ft Container",
+    qty: 1,
+    image_url: HD_IMAGES.apples,
+    category: "fruits",
+    created_at: new Date().toISOString(),
+  },
 ];
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -722,7 +864,12 @@ const st = StyleSheet.create({
     marginBottom: 20,
     ...CARD_SHADOW,
   },
-  searchPlaceholder: { flex: 1, color: BRAND.muted, fontSize: 14, fontWeight: "500" },
+  searchPlaceholder: {
+    flex: 1,
+    color: BRAND.muted,
+    fontSize: 14,
+    fontWeight: "500",
+  },
   searchMic: {
     width: 30,
     height: 30,
@@ -739,32 +886,53 @@ const st = StyleSheet.create({
     alignItems: "center",
     marginBottom: 14,
   },
-  sectionTitle: { fontSize: 18, fontWeight: "900", color: BRAND.text, letterSpacing: -0.3 },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: BRAND.text,
+    letterSpacing: -0.3,
+  },
   viewAll: { color: GREEN, fontWeight: "800", fontSize: 13 },
 
   // Categories
-  catRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
+  catRow: {
+    gap: 12,
+    paddingRight: 16,
+    paddingBottom: 24,
+  },
+
   catCard: {
-    flex: 1,
+    width: 92,
+    minHeight: 118,
+    borderRadius: 20,
     backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    alignItems: "center",
-    paddingVertical: 14,
-    gap: 8,
     borderWidth: 1,
     borderColor: BRAND.borderLight,
+    alignItems: "center",
+    paddingTop: 6,
+    paddingBottom: 10,
+    paddingHorizontal: 5,
     ...CARD_SHADOW,
   },
+
   catIcon: {
-    width: 50,
-    height: 50,
+    width: 78,
+    height: 78,
     borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
     overflow: "hidden",
   },
-  catImage: { width: 50, height: 50 },
-  catLabel: { fontSize: 11, fontWeight: "800", textAlign: "center" },
+
+  catImage: {
+    width: "100%",
+    height: "100%",
+  },
+
+  catLabel: {
+    marginTop: 7,
+    fontSize: 12,
+    fontWeight: "800",
+    textAlign: "center",
+  },
 
   // Price cards
   priceCard: {
@@ -779,11 +947,21 @@ const st = StyleSheet.create({
     borderColor: BRAND.borderLight,
     ...CARD_SHADOW,
   },
-  priceImage: { width: 60, height: 60, borderRadius: 14, backgroundColor: BRAND.primaryLight },
+  priceImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 14,
+    backgroundColor: BRAND.primaryLight,
+  },
   priceBody: { flex: 1 },
   cardTitle: { fontSize: 14, fontWeight: "800", color: BRAND.text },
   priceRange: { marginTop: 3, fontSize: 13, fontWeight: "900", color: GREEN },
-  priceMeta: { marginTop: 2, fontSize: 11, color: BRAND.muted, fontWeight: "600" },
+  priceMeta: {
+    marginTop: 2,
+    fontSize: 11,
+    color: BRAND.muted,
+    fontWeight: "600",
+  },
   trendBadge: {
     backgroundColor: BRAND.success,
     borderRadius: 999,
@@ -808,7 +986,13 @@ const st = StyleSheet.create({
     borderColor: BRAND.borderLight,
     ...CARD_SHADOW,
   },
-  adImageWrap: { width: 100, height: 112, borderRadius: 14, overflow: "hidden", backgroundColor: BRAND.primaryLight },
+  adImageWrap: {
+    width: 100,
+    height: 112,
+    borderRadius: 14,
+    overflow: "hidden",
+    backgroundColor: BRAND.primaryLight,
+  },
   adImage: { width: 100, height: 112 },
   adBody: { flex: 1, justifyContent: "center" },
   meta: { marginTop: 2, fontSize: 12, color: BRAND.muted, fontWeight: "600" },
